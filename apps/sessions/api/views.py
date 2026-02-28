@@ -4,12 +4,11 @@ Session management views.
 
 import logging
 
-from drf_spectacular.utils import extend_schema, extend_schema_view
-from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from rest_framework.views import APIView
-
+from apps.core.api import status
+from apps.core.api.base import ForgeAPIView as APIView
+from apps.core.api.base import Response
+from apps.core.api.decorators import extend_schema, extend_schema_view
+from apps.core.api.permissions import IsAuthenticated
 from apps.sessions.models import AuthSession
 
 logger = logging.getLogger(__name__)

@@ -7,13 +7,12 @@ read-only principal identity/lifecycle fields delegated from the linked Principa
 
 from __future__ import annotations
 
-from rest_framework import serializers
-
 from apps.accounts.exceptions import ProvisioningError, UsernameConflictError
 from apps.accounts.models import UserAccount
 from apps.accounts.models.principal import Principal
 from apps.accounts.services import AccountProvisioner
 from apps.accounts.validators import UsernameValidator
+from apps.core.api import serializers
 
 
 class UserAccountSerializer(serializers.ModelSerializer):

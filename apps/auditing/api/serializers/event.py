@@ -7,9 +7,8 @@ Serializers for the auditing REST API.
 
 from __future__ import annotations
 
-from rest_framework import serializers
-
 from apps.auditing.models.event import Event
+from apps.core.api import serializers
 
 
 class EventListSerializer(serializers.ModelSerializer):

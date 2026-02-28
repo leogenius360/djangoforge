@@ -1,5 +1,5 @@
 """
-drf-spectacular authentication extensions for our custom auth classes.
+OpenAPI authentication extensions for our custom auth classes.
 
 Registers ``OpenApiAuthenticationExtension`` sub-classes so that
 Swagger UI shows the correct ``Authorization: Bearer <jwt>`` security
@@ -8,7 +8,7 @@ scheme and the "Authorize" button works out of the box.
 Loaded via ``SessionsConfig.ready()`` in ``apps.py``.
 """
 
-from drf_spectacular.extensions import OpenApiAuthenticationExtension
+from apps.core.api.decorators import OpenApiAuthenticationExtension
 
 
 class SessionJWTAuthenticationScheme(OpenApiAuthenticationExtension):

@@ -1,5 +1,5 @@
 """
-DRF permissions for the accounts app.
+Permissions for the accounts app.
 
 Permissions
 -----------
@@ -19,11 +19,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from rest_framework.permissions import BasePermission
+from apps.core.api.permissions import BasePermission
 
 if TYPE_CHECKING:
-    from rest_framework.request import Request
-    from rest_framework.views import APIView
+    from django.http import HttpRequest as Request
+    from django.views import View as APIView
 
 from apps.accounts.settings import accounts_settings
 

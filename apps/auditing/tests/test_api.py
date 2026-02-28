@@ -5,7 +5,7 @@ import uuid
 import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
-from rest_framework.test import APIClient
+from django.test import Client as APIClient
 
 from apps.auditing.models import Event, EventType
 
@@ -63,7 +63,7 @@ class TestAuditApiAccess:
     def test_requires_staff(self, user_factory):
         """Non-staff users should be denied access to audit API."""
         user = user_factory()
-        self.client.force_authenticate(user=user)
+        self.client.force_login(user)
 
         response = self.client.get("/api/audit/events/")
 
@@ -75,7 +75,7 @@ class TestAuditApiAccess:
         target = user_factory(username="targetuser", email=self._unique_email("target"))
         self._create_audit_entries(staff_user, target)
 
-        self.client.force_authenticate(user=staff_user)
+        self.client.force_login(staff_user)
         response = self.client.get("/api/audit/events/")
 
         assert response.status_code == 200
@@ -86,11 +86,11 @@ class TestAuditApiAccess:
         target = user_factory(email=self._unique_email("ft"))
         self._create_audit_entries(staff_user, target)
 
-        self.client.force_authenticate(user=staff_user)
+        self.client.force_login(staff_user)
         response = self.client.get("/api/audit/events/", {"event_type": "create"})
 
         assert response.status_code == 200
-        data = response.data
+        data = response.json()
         results = data.get("results", data) if isinstance(data, dict) else data
         for event in results:
             assert event["event_type"] == "create"
@@ -101,12 +101,12 @@ class TestAuditApiAccess:
         target = user_factory(username="detailuser", email=self._unique_email("detail"))
         entry, _ = self._create_audit_entries(staff_user, target)
 
-        self.client.force_authenticate(user=staff_user)
+        self.client.force_login(staff_user)
         response = self.client.get(f"/api/audit/events/{entry.id}/")
 
         assert response.status_code == 200
-        assert response.data["id"] == str(entry.id)
-        assert response.data["object_id"] == str(target.pk)
+        assert response.json()["id"] == str(entry.id)
+        assert response.json()["object_id"] == str(target.pk)
 
     def test_history_endpoint(self, user_factory):
         """History endpoint returns timeline for object ordered by version."""
@@ -117,19 +117,19 @@ class TestAuditApiAccess:
         content_type = ContentType.objects.get_for_model(target.__class__)
         content_type_str = f"{content_type.app_label}.{content_type.model}"
 
-        self.client.force_authenticate(user=staff_user)
+        self.client.force_login(staff_user)
         response = self.client.get(
             "/api/audit/history/",
             {"content_type": content_type_str, "object_id": str(target.pk)},
         )
 
         assert response.status_code == 200
-        assert len(response.data) >= 2
+        assert len(response.json()) >= 2
 
     def test_history_endpoint_missing_params(self):
         """History endpoint returns 400 when required params are missing."""
         staff_user = self._create_staff_user()
-        self.client.force_authenticate(user=staff_user)
+        self.client.force_login(staff_user)
 
         response = self.client.get("/api/audit/history/")
         assert response.status_code == 400
@@ -137,7 +137,7 @@ class TestAuditApiAccess:
     def test_history_endpoint_requires_staff(self, user_factory):
         """Non-staff users cannot access history endpoint."""
         user = user_factory()
-        self.client.force_authenticate(user=user)
+        self.client.force_login(user)
 
         response = self.client.get(
             "/api/audit/history/",
@@ -155,7 +155,7 @@ class TestAuditApiAccess:
         content_type = ContentType.objects.get_for_model(target.__class__)
         content_type_str = f"{content_type.app_label}.{content_type.model}"
 
-        self.client.force_authenticate(user=staff_user)
+        self.client.force_login(staff_user)
         response = self.client.get(
             "/api/audit/version/",
             {
@@ -166,13 +166,13 @@ class TestAuditApiAccess:
         )
 
         assert response.status_code == 200
-        assert response.data["version"] == 2
-        assert "state" in response.data
+        assert response.json()["version"] == 2
+        assert "state" in response.json()
 
     def test_version_endpoint_invalid_version(self):
         """Version endpoint returns 400 for non-integer version."""
         staff_user = self._create_staff_user()
-        self.client.force_authenticate(user=staff_user)
+        self.client.force_login(staff_user)
 
         response = self.client.get(
             "/api/audit/version/",
@@ -187,7 +187,7 @@ class TestAuditApiAccess:
     def test_version_endpoint_not_found(self):
         """Version endpoint returns 404 when version does not exist."""
         staff_user = self._create_staff_user()
-        self.client.force_authenticate(user=staff_user)
+        self.client.force_login(staff_user)
 
         # Use the actual User content type (ensures it exists in the DB)
         ct = ContentType.objects.get_for_model(User)

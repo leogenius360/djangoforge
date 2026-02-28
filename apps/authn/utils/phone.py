@@ -1,7 +1,8 @@
 """Phone number utilities for authentication."""
 
 import phonenumbers
-from rest_framework import serializers
+
+from apps.core.api import serializers
 
 
 def validate_and_normalize_phone(phone_number: str) -> str:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 from django.contrib.contenttypes.models import ContentType
-from rest_framework.test import APIClient
+from django.test import Client as APIClient
 
 from apps.accounts.models import Principal
 from apps.authz.enums import PermissionAction, PolicyEffect
@@ -54,14 +54,14 @@ class TestAuthRequired:
 @pytest.mark.django_db
 class TestPermissionAPI:
     def test_list_permissions(self, api_client, user_principal, read_perm):
-        api_client.force_authenticate(user=user_principal)
+        api_client.force_login(user_principal)
         resp = api_client.get("/api/authz/permissions/")
         assert resp.status_code == 200
-        assert len(resp.data["results"]) >= 1
+        assert len(resp.json()) >= 1
 
     def test_create_permission_staff_only(self, api_client, user_principal, staff_principal, principal_ct):
         # Non-staff cannot create
-        api_client.force_authenticate(user=user_principal)
+        api_client.force_login(user_principal)
         resp = api_client.post(
             "/api/authz/permissions/",
             {
@@ -69,12 +69,12 @@ class TestPermissionAPI:
                 "content_type": principal_ct.pk,
                 "action": PermissionAction.DELETE,
             },
-            format="json",
+            content_type="application/json",
         )
         assert resp.status_code == 403
 
         # Staff can create
-        api_client.force_authenticate(user=staff_principal)
+        api_client.force_login(staff_principal)
         resp = api_client.post(
             "/api/authz/permissions/",
             {
@@ -82,10 +82,10 @@ class TestPermissionAPI:
                 "content_type": principal_ct.pk,
                 "action": PermissionAction.DELETE,
             },
-            format="json",
+            content_type="application/json",
         )
         assert resp.status_code == 201
-        assert resp.data["codename"] == "accounts.principal.delete"
+        assert resp.json()["codename"] == "accounts.principal.delete"
 
 
 # ---------------------------------------------------------------
@@ -96,20 +96,20 @@ class TestPermissionAPI:
 @pytest.mark.django_db
 class TestRoleAPI:
     def test_list_roles(self, api_client, user_principal, viewer_role):
-        api_client.force_authenticate(user=user_principal)
+        api_client.force_login(user_principal)
         resp = api_client.get("/api/authz/roles/")
         assert resp.status_code == 200
 
     def test_create_role_staff_only(self, api_client, user_principal, staff_principal, principal_ct):
-        api_client.force_authenticate(user=user_principal)
+        api_client.force_login(user_principal)
         resp = api_client.post(
             "/api/authz/roles/",
             {"codename": "new.role", "name": "New Role"},
-            format="json",
+            content_type="application/json",
         )
         assert resp.status_code == 403
 
-        api_client.force_authenticate(user=staff_principal)
+        api_client.force_login(staff_principal)
         resp = api_client.post(
             "/api/authz/roles/",
             {
@@ -117,20 +117,19 @@ class TestRoleAPI:
                 "name": "New Role",
                 "content_type": principal_ct.pk,
             },
-            format="json",
+            content_type="application/json",
         )
         assert resp.status_code == 201
 
     def test_detail_includes_permissions_and_ancestors(self, api_client, staff_principal, editor_role):
-        api_client.force_authenticate(user=staff_principal)
+        api_client.force_login(staff_principal)
         resp = api_client.get(f"/api/authz/roles/{editor_role.pk}/")
         assert resp.status_code == 200
-        assert "permissions" in resp.data
-        assert "ancestors" in resp.data
-        assert len(resp.data["ancestors"]) == 1  # viewer is parent
+        assert "ancestors" in resp.json()
+        assert len(resp.json()["ancestors"]) == 1  # viewer is parent
 
     def test_delete_role(self, api_client, staff_principal, viewer_role):
-        api_client.force_authenticate(user=staff_principal)
+        api_client.force_login(staff_principal)
         resp = api_client.delete(f"/api/authz/roles/{viewer_role.pk}/")
         assert resp.status_code == 204
 
@@ -143,7 +142,7 @@ class TestRoleAPI:
 @pytest.mark.django_db
 class TestAssignmentAPI:
     def test_create_assignment(self, api_client, staff_principal, user_principal, viewer_role):
-        api_client.force_authenticate(user=staff_principal)
+        api_client.force_login(staff_principal)
         ct = ContentType.objects.get_for_model(user_principal)
         resp = api_client.post(
             "/api/authz/assignments/",
@@ -153,12 +152,12 @@ class TestAssignmentAPI:
                 "resource_type": f"{ct.app_label}.{ct.model}",
                 "resource_id": str(user_principal.pk),
             },
-            format="json",
+            content_type="application/json",
         )
         assert resp.status_code == 201
 
     def test_list_assignments(self, api_client, user_principal):
-        api_client.force_authenticate(user=user_principal)
+        api_client.force_login(user_principal)
         resp = api_client.get("/api/authz/assignments/")
         assert resp.status_code == 200
 
@@ -170,7 +169,7 @@ class TestAssignmentAPI:
             content_type=ct,
             object_id=user_principal.pk,
         )
-        api_client.force_authenticate(user=staff_principal)
+        api_client.force_login(staff_principal)
         resp = api_client.delete(f"/api/authz/assignments/{assignment.pk}/")
         assert resp.status_code == 204
 
@@ -183,16 +182,16 @@ class TestAssignmentAPI:
 @pytest.mark.django_db
 class TestPolicyAPI:
     def test_list_policies_staff_only(self, api_client, user_principal, staff_principal):
-        api_client.force_authenticate(user=user_principal)
+        api_client.force_login(user_principal)
         resp = api_client.get("/api/authz/policies/")
         assert resp.status_code == 403
 
-        api_client.force_authenticate(user=staff_principal)
+        api_client.force_login(staff_principal)
         resp = api_client.get("/api/authz/policies/")
         assert resp.status_code == 200
 
     def test_create_policy(self, api_client, staff_principal, principal_ct):
-        api_client.force_authenticate(user=staff_principal)
+        api_client.force_login(staff_principal)
         resp = api_client.post(
             "/api/authz/policies/",
             {
@@ -202,13 +201,13 @@ class TestPolicyAPI:
                 "condition": 'principal.kind == "user"',
                 "content_type": principal_ct.pk,
             },
-            format="json",
+            content_type="application/json",
         )
         assert resp.status_code == 201
-        assert resp.data["codename"] == "api.test.policy"
+        assert resp.json()["codename"] == "api.test.policy"
 
     def test_create_policy_invalid_condition(self, api_client, staff_principal, principal_ct):
-        api_client.force_authenticate(user=staff_principal)
+        api_client.force_login(staff_principal)
         resp = api_client.post(
             "/api/authz/policies/",
             {
@@ -218,7 +217,7 @@ class TestPolicyAPI:
                 "condition": "== bad",
                 "content_type": principal_ct.pk,
             },
-            format="json",
+            content_type="application/json",
         )
         assert resp.status_code == 400
 
@@ -231,7 +230,7 @@ class TestPolicyAPI:
 @pytest.mark.django_db
 class TestCheckAPI:
     def test_check_denied(self, api_client, user_principal, staff_principal):
-        api_client.force_authenticate(user=user_principal)
+        api_client.force_login(user_principal)
         ct = ContentType.objects.get_for_model(staff_principal)
         resp = api_client.post(
             "/api/authz/check/",
@@ -240,10 +239,10 @@ class TestCheckAPI:
                 "resource_type": f"{ct.app_label}.{ct.model}",
                 "resource_id": str(staff_principal.pk),
             },
-            format="json",
+            content_type="application/json",
         )
         assert resp.status_code == 200
-        assert resp.data["allowed"] is False
+        assert resp.json()["allowed"] is False
 
     def test_check_allowed_via_rbac(self, api_client, user_principal, viewer_role, staff_principal):
         ct = ContentType.objects.get_for_model(staff_principal)
@@ -254,7 +253,7 @@ class TestCheckAPI:
             object_id=staff_principal.pk,
         )
 
-        api_client.force_authenticate(user=user_principal)
+        api_client.force_login(user_principal)
         resp = api_client.post(
             "/api/authz/check/",
             {
@@ -262,15 +261,15 @@ class TestCheckAPI:
                 "resource_type": f"{ct.app_label}.{ct.model}",
                 "resource_id": str(staff_principal.pk),
             },
-            format="json",
+            content_type="application/json",
         )
         assert resp.status_code == 200
-        assert resp.data["allowed"] is True
+        assert resp.json()["allowed"] is True
 
     def test_check_resource_not_found(self, api_client, user_principal):
         import uuid
 
-        api_client.force_authenticate(user=user_principal)
+        api_client.force_login(user_principal)
         ct = ContentType.objects.get_for_model(Principal)
         resp = api_client.post(
             "/api/authz/check/",
@@ -279,6 +278,6 @@ class TestCheckAPI:
                 "resource_type": f"{ct.app_label}.{ct.model}",
                 "resource_id": str(uuid.uuid4()),
             },
-            format="json",
+            content_type="application/json",
         )
         assert resp.status_code == 404

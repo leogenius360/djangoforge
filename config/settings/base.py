@@ -37,12 +37,7 @@ DJANGO_APPS = [
     "django.contrib.staticfiles",
 ]
 
-THIRD_PARTY_APPS = [
-    "rest_framework",
-    "corsheaders",
-    "drf_spectacular",
-    "social_django",
-]
+THIRD_PARTY_APPS = []
 
 LOCAL_APPS = [
     "apps.core.apps.CoreConfig",
@@ -57,7 +52,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
+    "apps.core.api.cors.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -146,10 +141,6 @@ AUTHENTICATION_BACKENDS = [
     "apps.authn.backends.UsernameBackend",
     "apps.authn.backends.PhoneBackend",
     "apps.authn.backends.PasswordlessBackend",
-    "social_core.backends.google.GoogleOAuth2",
-    "social_core.backends.github.GithubOAuth2",
-    "social_core.backends.microsoft.MicrosoftOAuth2",
-    "social_core.backends.apple.AppleIdAuth",
     "django.contrib.auth.backends.ModelBackend",
 ]
 
@@ -171,27 +162,13 @@ MEDIA_ROOT = BASE_DIR / "media"
 # Default primary key field type
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Django REST Framework
-REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "apps.sessions.authentication.DualAuthentication",  # JWT (our own) + cookie session
-    ),
-    "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.IsAuthenticated",
-    ],
-    "DEFAULT_RENDERER_CLASSES": [
-        "rest_framework.renderers.JSONRenderer",
-    ],
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-    "PAGE_SIZE": 20,
-    "DEFAULT_FILTER_BACKENDS": [
-        "rest_framework.filters.SearchFilter",
-        "rest_framework.filters.OrderingFilter",
-    ],
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    "EXCEPTION_HANDLER": "apps.authn.exception_handler.authn_exception_handler",
-    "TEST_REQUEST_DEFAULT_FORMAT": "json",
-}
+# ForgeAPIView authentication classes
+FORGE_AUTHENTICATION_CLASSES = [
+    "apps.sessions.authentication.DualAuthentication",
+]
+
+# ForgeAPIView exception handler (used by apps.core.api.base.ForgeAPIView)
+FORGE_EXCEPTION_HANDLER = "apps.authn.exception_handler.authn_exception_handler"
 
 # JWT Settings are now managed by the authn app (AUTHN["ACCESS_TOKEN_LIFETIME_SECONDS"]).
 # SimpleJWT has been removed; tokens are issued by apps.authn.services.jwt.JWTService.
@@ -210,16 +187,6 @@ CORS_ALLOW_HEADERS = [
     "x-csrftoken",
     "x-requested-with",
 ]
-
-# DRF Spectacular Settings (API Documentation)
-SPECTACULAR_SETTINGS = {
-    "TITLE": "Backend API",
-    "DESCRIPTION": "Production-grade Django 5 Backend API",
-    "VERSION": "1.0.0",
-    "SERVE_INCLUDE_SCHEMA": False,
-    "COMPONENT_SPLIT_REQUEST": True,
-    "SCHEMA_PATH_PREFIX": r"/api",
-}
 
 # Cache Configuration (default to local memory, override in prod if needed)
 CACHES = {
@@ -327,58 +294,6 @@ LOGGING = {
         },
     },
 }
-
-# =============================================================================
-# Social Authentication Configuration
-# =============================================================================
-
-# Python Social Auth settings
-SOCIAL_AUTH_JSONFIELD_ENABLED = True
-SOCIAL_AUTH_URL_NAMESPACE = "social"
-SOCIAL_AUTH_REDIRECT_IS_HTTPS = env.bool("SOCIAL_AUTH_REDIRECT_IS_HTTPS", default=False)
-
-# Social Auth Pipeline
-SOCIAL_AUTH_PIPELINE = (
-    "social_core.pipeline.social_auth.social_details",
-    "social_core.pipeline.social_auth.social_uid",
-    "social_core.pipeline.social_auth.auth_allowed",
-    "social_core.pipeline.social_auth.social_user",
-    "social_core.pipeline.user.get_username",
-    "social_core.pipeline.social_auth.associate_by_email",
-    "social_core.pipeline.user.create_user",
-    "social_core.pipeline.social_auth.associate_user",
-    "social_core.pipeline.social_auth.load_extra_data",
-    "social_core.pipeline.user.user_details",
-)
-
-# Google OAuth2
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = env("GOOGLE_OAUTH2_KEY", default="")
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = env("GOOGLE_OAUTH2_SECRET", default="")
-SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE = [
-    "https://www.googleapis.com/auth/userinfo.email",
-    "https://www.googleapis.com/auth/userinfo.profile",
-]
-
-# GitHub OAuth
-SOCIAL_AUTH_GITHUB_KEY = env("GITHUB_OAUTH_KEY", default="")
-SOCIAL_AUTH_GITHUB_SECRET = env("GITHUB_OAUTH_SECRET", default="")
-SOCIAL_AUTH_GITHUB_SCOPE = ["user:email"]
-
-# Microsoft OAuth2
-SOCIAL_AUTH_MICROSOFT_GRAPH_KEY = env("MICROSOFT_OAUTH_KEY", default="")
-SOCIAL_AUTH_MICROSOFT_GRAPH_SECRET = env("MICROSOFT_OAUTH_SECRET", default="")
-
-# Apple Sign-In
-SOCIAL_AUTH_APPLE_ID_CLIENT = env("APPLE_CLIENT_ID", default="")
-SOCIAL_AUTH_APPLE_ID_TEAM = env("APPLE_TEAM_ID", default="")
-SOCIAL_AUTH_APPLE_ID_KEY = env("APPLE_KEY_ID", default="")
-SOCIAL_AUTH_APPLE_ID_SECRET = env("APPLE_PRIVATE_KEY", default="")
-SOCIAL_AUTH_APPLE_ID_SCOPE = ["email", "name"]
-
-# Login/Logout URLs for social auth
-LOGIN_URL = "/api/accounts/login/"
-LOGIN_REDIRECT_URL = "/"
-LOGOUT_REDIRECT_URL = "/"
 
 # =============================================================================
 # Accounts App Configuration

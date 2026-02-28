@@ -1,5 +1,7 @@
 """
-Core API layer.
+DjangoForge Core API layer.
 
-This module contains views for health checks and system monitoring.
+Provides a pure-Django API framework including views, serializers,
+permissions, authentication, pagination, filtering, and exception handling.
+No third-party API framework (e.g. DRF) is required.
 """

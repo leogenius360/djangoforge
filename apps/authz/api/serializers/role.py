@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from django.contrib.contenttypes.models import ContentType
-from rest_framework import serializers
 
 from apps.authz.models import Role, RolePermission
 from apps.authz.services import RoleService
+from apps.core.api import serializers
 
 
 class RolePermissionInlineSerializer(serializers.ModelSerializer):

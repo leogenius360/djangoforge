@@ -7,9 +7,8 @@ setting from ``AccountsSettings``.
 
 from __future__ import annotations
 
-from rest_framework.pagination import PageNumberPagination
-
 from apps.accounts.settings import accounts_settings
+from apps.core.api.pagination import PageNumberPagination
 
 
 class AccountsPagination(PageNumberPagination):

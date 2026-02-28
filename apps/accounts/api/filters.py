@@ -1,5 +1,5 @@
 """
-DRF filter backends for the accounts app.
+Filter backends for the accounts app.
 
 Provides query-parameter filters for principal status and kind, usable
 on any viewset that resolves to a model with a ``principal`` FK.
@@ -9,11 +9,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from rest_framework.filters import BaseFilterBackend
+from apps.core.api.filters import BaseFilterBackend
 
 if TYPE_CHECKING:
-    from rest_framework.request import Request
-    from rest_framework.views import APIView
+    from django.http import HttpRequest as Request
+    from django.views import View as APIView
 
 
 class PrincipalStatusFilter(BaseFilterBackend):

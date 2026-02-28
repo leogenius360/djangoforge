@@ -4,11 +4,10 @@ ServiceAccount serializers.
 
 from __future__ import annotations
 
-from rest_framework import serializers
-
 from apps.accounts.models import ServiceAccount
 from apps.accounts.services import AccountProvisioner
 from apps.accounts.settings import accounts_settings
+from apps.core.api import serializers
 
 
 class ServiceAccountSerializer(serializers.ModelSerializer):

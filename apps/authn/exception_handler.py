@@ -1,5 +1,5 @@
 """
-DRF exception handler for the authn subsystem.
+Exception handler for the authn subsystem.
 
 Maps the ``AuthenticationError`` hierarchy to structured HTTP responses,
 ensuring internal details never leak to clients.
@@ -8,9 +8,7 @@ ensuring internal details never leak to clients.
 from __future__ import annotations
 
 import logging
-
-from rest_framework.response import Response
-from rest_framework.views import exception_handler as drf_exception_handler
+from typing import TYPE_CHECKING
 
 from apps.authn.exceptions import (
     AccountLockedError,
@@ -20,14 +18,19 @@ from apps.authn.exceptions import (
     PasswordValidationError,
     RateLimitExceededError,
 )
+from apps.core.api.base import api_response
+
+if TYPE_CHECKING:
+    from django.http import JsonResponse
 
 logger = logging.getLogger(__name__)
 
 
-def authn_exception_handler(exc: Exception, context: dict) -> Response | None:
-    """Map ``AuthenticationError`` subclasses to DRF responses.
+def authn_exception_handler(exc: Exception, context: dict) -> JsonResponse | None:
+    """Map ``AuthenticationError`` subclasses to JSON responses.
 
-    For non-authn exceptions, falls through to the default DRF handler.
+    For non-authn exceptions, returns ``None`` so that the base
+    ``ForgeAPIView`` can handle unknown exceptions.
     """
     if isinstance(exc, AuthenticationError):
         # Log the internal detail at warning level (never sent to client)
@@ -61,6 +64,6 @@ def authn_exception_handler(exc: Exception, context: dict) -> Response | None:
         if isinstance(exc, PasswordValidationError) and exc.errors:
             data["validation_errors"] = exc.errors
 
-        return Response(data, status=exc.status_code)
+        return api_response(data, status=exc.status_code)
 
-    return drf_exception_handler(exc, context)
+    return None

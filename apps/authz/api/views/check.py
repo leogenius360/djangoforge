@@ -3,17 +3,17 @@
 from __future__ import annotations
 
 from django.contrib.contenttypes.models import ContentType
-from drf_spectacular.utils import extend_schema
-from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from apps.authz.api.serializers.check import (
     CheckPermissionRequestSerializer,
     CheckPermissionResponseSerializer,
 )
 from apps.authz.services import AuthorizationChecker
+from apps.core.api import status
+from apps.core.api.base import ForgeAPIView as APIView
+from apps.core.api.base import Response
+from apps.core.api.decorators import extend_schema
+from apps.core.api.permissions import IsAuthenticated
 
 
 class CheckPermissionView(APIView):

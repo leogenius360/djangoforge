@@ -4,10 +4,9 @@ APIClient serializers.
 
 from __future__ import annotations
 
-from rest_framework import serializers
-
 from apps.accounts.models import APIClient
 from apps.accounts.services import AccountProvisioner
+from apps.core.api import serializers
 
 
 class APIClientSerializer(serializers.ModelSerializer):

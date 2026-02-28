@@ -15,21 +15,22 @@ from __future__ import annotations
 
 from django.contrib.contenttypes.models import ContentType
 from django.utils.dateparse import parse_datetime
-from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
-from rest_framework import generics, serializers, status
-from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from apps.auditing.api.permissions import IsStaffUser
 from apps.auditing.api.serializers.event import EventDetailSerializer, EventListSerializer
 from apps.auditing.models.event import Event
+from apps.core.api import status
+from apps.core.api.base import ForgeAPIView, ListAPIView, Response, RetrieveAPIView
+from apps.core.api.decorators import OpenApiParameter, extend_schema, inline_serializer
+from apps.core.api.exceptions import ValidationError
+from apps.core.api.serializers import IntegerField, JSONField
 
 # ---------------------------------------------------------------------------
 # Event list  —  GET /api/audit/events/
 # ---------------------------------------------------------------------------
 
 
-class EventListView(generics.ListAPIView):
+class EventListView(ListAPIView):
     """
     Paginated list of audit events.
 
@@ -56,7 +57,7 @@ class EventListView(generics.ListAPIView):
     def get_queryset(self):  # type: ignore[override]
         qs = Event.objects.select_related("content_type", "actor").order_by("-created_at")
 
-        params = self.request.query_params
+        params = self.request.GET
 
         event_type = params.get("event_type")
         if event_type:
@@ -99,7 +100,7 @@ class EventListView(generics.ListAPIView):
 # ---------------------------------------------------------------------------
 
 
-class EventDetailView(generics.RetrieveAPIView):
+class EventDetailView(RetrieveAPIView):
     """Single audit event with full snapshot."""
 
     permission_classes = [IsStaffUser]
@@ -128,7 +129,7 @@ _OBJECT_ID_PARAM = OpenApiParameter(
 )
 
 
-class ObjectHistoryView(APIView):
+class ObjectHistoryView(ForgeAPIView):
     """
     All audit events for a specific object, ordered by version ascending.
 
@@ -147,8 +148,8 @@ class ObjectHistoryView(APIView):
         responses=EventListSerializer(many=True),
     )
     def get(self, request):
-        content_type_label = request.query_params.get("content_type", "")
-        object_id = request.query_params.get("object_id", "")
+        content_type_label = request.GET.get("content_type", "")
+        object_id = request.GET.get("object_id", "")
 
         errors = {}
         if not content_type_label:
@@ -156,15 +157,13 @@ class ObjectHistoryView(APIView):
         if not object_id:
             errors["object_id"] = "This parameter is required."
         if errors:
-            raise serializers.ValidationError(errors)
+            raise ValidationError(errors)
 
         try:
             app_label, model = content_type_label.lower().split(".", 1)
             ct = ContentType.objects.get_by_natural_key(app_label, model)
         except (ValueError, ContentType.DoesNotExist) as exc:
-            raise serializers.ValidationError(
-                {"content_type": f"Unknown content type: {content_type_label!r}."}
-            ) from exc
+            raise ValidationError({"content_type": f"Unknown content type: {content_type_label!r}."}) from exc
 
         events = (
             Event.objects.filter(content_type=ct, object_id=object_id)
@@ -180,7 +179,7 @@ class ObjectHistoryView(APIView):
 # ---------------------------------------------------------------------------
 
 
-class ObjectVersionView(APIView):
+class ObjectVersionView(ForgeAPIView):
     """
     Model state snapshot at a specific version number.
 
@@ -211,15 +210,15 @@ class ObjectVersionView(APIView):
         responses=inline_serializer(
             "ObjectVersionResponse",
             fields={
-                "version": serializers.IntegerField(),
-                "state": serializers.JSONField(),
+                "version": IntegerField(),
+                "state": JSONField(),
             },
         ),
     )
     def get(self, request):
-        content_type_label = request.query_params.get("content_type", "")
-        object_id = request.query_params.get("object_id", "")
-        version_str = request.query_params.get("version", "")
+        content_type_label = request.GET.get("content_type", "")
+        object_id = request.GET.get("object_id", "")
+        version_str = request.GET.get("version", "")
 
         errors = {}
         if not content_type_label:
@@ -229,22 +228,20 @@ class ObjectVersionView(APIView):
         if not version_str:
             errors["version"] = "This parameter is required."
         if errors:
-            raise serializers.ValidationError(errors)
+            raise ValidationError(errors)
 
         try:
             version = int(version_str)
             if version < 1:
                 raise ValueError
         except ValueError as exc:
-            raise serializers.ValidationError({"version": "Version must be a positive integer."}) from exc
+            raise ValidationError({"version": "Version must be a positive integer."}) from exc
 
         try:
             app_label, model = content_type_label.lower().split(".", 1)
             ct = ContentType.objects.get_by_natural_key(app_label, model)
         except (ValueError, ContentType.DoesNotExist) as exc:
-            raise serializers.ValidationError(
-                {"content_type": f"Unknown content type: {content_type_label!r}."}
-            ) from exc
+            raise ValidationError({"content_type": f"Unknown content type: {content_type_label!r}."}) from exc
 
         event = Event.objects.filter(
             content_type=ct,

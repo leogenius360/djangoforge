@@ -21,4 +21,3 @@ pylint-django==2.7.0
 # Type checking
 mypy==1.19.1
 django-stubs==5.2.9
-djangorestframework-stubs==3.16.8

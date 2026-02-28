@@ -20,10 +20,6 @@ import logging
 from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
-from drf_spectacular.views import (
-    SpectacularAPIView,
-    SpectacularSwaggerView,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -32,15 +28,6 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     # API
     path("api/", include("config.api_urls")),
-    # Social Authentication
-    path("api/auth/social/", include("social_django.urls", namespace="social")),
-    # API Documentation
-    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
-    path(
-        "api/docs/",
-        SpectacularSwaggerView.as_view(url_name="schema"),
-        name="swagger-ui",
-    ),
 ]
 
 # Prometheus metrics endpoint (if available)

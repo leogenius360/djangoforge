@@ -4,9 +4,6 @@ UserAccount views.
 
 from __future__ import annotations
 
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateAPIView
-from rest_framework.permissions import AllowAny, IsAuthenticated
-
 from apps.accounts.api.pagination import AccountsPagination
 from apps.accounts.api.permissions import IsOwnerOrStaff, IsStaffOrReadOnly
 from apps.accounts.api.serializers import (
@@ -15,6 +12,8 @@ from apps.accounts.api.serializers import (
     UserAccountSerializer,
 )
 from apps.accounts.models import UserAccount
+from apps.core.api.base import ListCreateAPIView, RetrieveUpdateAPIView
+from apps.core.api.permissions import AllowAny, IsAuthenticated
 
 
 class UserAccountListView(ListCreateAPIView):
