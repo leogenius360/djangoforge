@@ -1,0 +1,40 @@
+# Core Django
+Django==5.2.11
+django-environ==0.12
+
+# Database (psycopg3 with async support)
+psycopg[binary]==3.3.2
+psycopg[pool]==3.3.2
+
+# API
+djangorestframework==3.16.1
+PyJWT==2.11.0
+
+# API Documentation
+drf-spectacular==0.29.0
+
+# CORS
+django-cors-headers==4.9.0
+
+# Redis
+redis==7.1.0
+django-redis==6.0.0
+
+# Async/Celery (production-ready)
+celery==5.6.2
+
+# Security
+django-ratelimit==4.1.0
+argon2-cffi==25.1.0
+
+# Monitoring
+psutil==7.2.2
+
+# Utilities
+python-dateutil==2.9.0.post0
+
+# Authentication
+pyotp==2.9.0
+phonenumbers==9.0.23
+social-auth-app-django==5.7.0
+qrcode[pil]==8.2

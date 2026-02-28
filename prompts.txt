@@ -1,0 +1,6 @@
+Let's do an app by app check.
+Don't worry about usages from external/other apps.
+Check for enterprise standards and compliance, code quality, best practices, architural design and structure, naming conventions, docstrings/documentations.
+
+Lets start with the core app (apps/core/)
+I need a detailed, engineering truth, analysis and review of the core app.

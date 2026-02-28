@@ -1,0 +1,11 @@
+-r base.txt
+
+# Production WSGI server
+gunicorn==25.0.3
+
+# Monitoring and logging
+sentry-sdk==2.52.0
+prometheus-client==0.24.1
+
+# Production utilities
+whitenoise==6.11.0

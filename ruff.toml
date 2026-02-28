@@ -1,0 +1,64 @@
+# Ruff configuration - replaces flake8 and isort
+# https://docs.astral.sh/ruff/configuration/
+
+line-length = 120
+target-version = "py312"
+
+# Exclude directories
+exclude = [
+    ".git",
+    "__pycache__",
+    "*/migrations/*",
+    "*/static/*",
+    "*/media/*",
+    "venv",
+    ".venv",
+    "env",
+    ".env",
+    "build",
+    "dist",
+]
+
+[lint]
+# Enable flake8-compatible rules plus additional checks
+select = [
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "F",     # pyflakes
+    "I",     # isort
+    "N",     # pep8-naming
+    "UP",    # pyupgrade
+    "B",     # flake8-bugbear
+    "C4",    # flake8-comprehensions
+    "DJ",    # flake8-django
+    "PIE",   # flake8-pie
+    "SIM",   # flake8-simplify
+    "TCH",   # flake8-type-checking
+]
+
+# Ignore specific rules (matching previous flake8 config)
+ignore = [
+    "E203",  # whitespace before ':' (not compatible with black)
+]
+
+# Allow autofix for all enabled rules
+fixable = ["ALL"]
+
+[lint.per-file-ignores]
+# Ignore unused imports in __init__.py files
+"__init__.py" = ["F401"]
+# Allow assert statements in tests
+"**/tests/**" = ["S101"]
+"**/test_*.py" = ["S101"]
+
+[lint.isort]
+# isort configuration
+known-first-party = ["apps", "config"]
+section-order = ["future", "standard-library", "third-party", "first-party", "local-folder"]
+
+[format]
+# Use black-compatible formatting
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
