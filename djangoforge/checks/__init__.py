@@ -4,17 +4,22 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any
+
 from django.core.checks import Error, Warning, register
 
 from djangoforge.settings import forge_settings
 
+if TYPE_CHECKING:
+    from django.apps import AppConfig
+
 
 @register("forge")
-def check_forge_middleware(app_configs, **kwargs):  # type: ignore[no-untyped-def]
+def check_forge_middleware(app_configs: list[AppConfig] | None, **kwargs: Any) -> list[Error | Warning]:
     """Verify that correlation-ID middleware is in MIDDLEWARE."""
     from django.conf import settings
 
-    issues = []
+    issues: list[Error | Warning] = []
     mw = getattr(settings, "MIDDLEWARE", [])
     if "djangoforge.middleware.correlation.CorrelationIdMiddleware" not in mw:
         issues.append(
@@ -37,20 +42,20 @@ def check_forge_middleware(app_configs, **kwargs):  # type: ignore[no-untyped-de
 
 
 @register("forge")
-def check_forge_events(app_configs, **kwargs):  # type: ignore[no-untyped-def]
+def check_forge_events(app_configs: list[AppConfig] | None, **kwargs: Any) -> list[Error | Warning]:
     """Verify outbox event table exists when events are enabled."""
-    issues = []
+    issues: list[Error | Warning] = []
     if forge_settings.EVENTS_ENABLED and "djangoforge" not in [ac.name for ac in (app_configs or [])]:
         pass  # App may not be in INSTALLED_APPS yet during initial check
     return issues
 
 
 @register("forge")
-def check_forge_security(app_configs, **kwargs):  # type: ignore[no-untyped-def]
+def check_forge_security(app_configs: list[AppConfig] | None, **kwargs: Any) -> list[Error | Warning]:
     """Validate security-related settings."""
     from django.conf import settings
 
-    issues = []
+    issues: list[Error | Warning] = []
     if not settings.DEBUG:
         if not getattr(settings, "CSRF_COOKIE_SECURE", False):
             issues.append(

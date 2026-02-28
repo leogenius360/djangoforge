@@ -1,1 +1,1 @@
-"""DRF adapter — empty namespace marker."""
+"""DRF and Ninja adapters — empty namespace marker."""

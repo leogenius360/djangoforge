@@ -56,7 +56,7 @@ class ForgeSettings:
             return DEFAULTS[name]
         raise AttributeError(f"Unknown FORGE setting: {name}")
 
-    def validate(self) -> None:  # noqa: B027 – intentionally empty for now
+    def validate(self) -> None:
         """Run startup validation. Called from ``AppConfig.ready()``."""
         user: dict[str, Any] = getattr(settings, "FORGE", {})
         for key in user:

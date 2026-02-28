@@ -11,6 +11,8 @@ Runs all Forge-specific checks beyond what ``manage.py check`` provides:
 
 from __future__ import annotations
 
+from typing import Any
+
 from django.core.checks import run_checks
 from django.core.management.base import BaseCommand
 
@@ -18,7 +20,7 @@ from django.core.management.base import BaseCommand
 class Command(BaseCommand):
     help = "Run DjangoForge enterprise checks (OpenAPI, security, observability, events)."
 
-    def handle(self, *args, **options):  # type: ignore[no-untyped-def]
+    def handle(self, *args: Any, **options: Any) -> None:
         self.stdout.write(self.style.MIGRATE_HEADING("Running Forge checks…"))
 
         errors = run_checks(tags=["forge"])

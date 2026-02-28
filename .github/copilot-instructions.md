@@ -2,6 +2,8 @@
 
 You are working in a Django REST API backend (Django 5.x + DRF) with PostgreSQL, JWT auth, Docker support, and CI that enforces formatting, linting, and tests.
 
+The project includes **DjangoForge** (`djangoforge/`), an enterprise extension layer that provides a Forge API Contract, DRF/Ninja adapters, an outbox-based event system, auth policy layer, observability middleware, and CI-enforceable checks.
+
 ## Prime directive
 
 **Every change must keep CI green.** Before finishing any task, ensure:
@@ -25,6 +27,7 @@ Always inspect and follow the project’s canonical configuration:
 3. `README.md` (local dev commands, env vars, Docker usage)
 4. `config/` Django settings (especially test/prod differences)
 5. `apps/` conventions and architecture
+6. `djangoforge/` package (Forge API contract, adapters, events, auth, middleware, checks)
 
 Do not guess versions/flags when they are defined in these files.
 
@@ -93,6 +96,23 @@ A task is not done until **all applicable checks** pass locally in the same way 
   - `apps/core/` for shared utilities (base models, managers, querysets, mixins)
 - Avoid leaking domain logic into `core` unless it’s truly cross-cutting.
 
+### DjangoForge package (`djangoforge/`)
+
+- **Forge API Contract** (`djangoforge/api/`): framework-agnostic types (RequestContext, ProblemDetail, PaginationSpec, FilterSpec, SortSpec, ApiResponse) and policy hooks (AuthPolicy, PermissionPolicy, RateLimitPolicy, IdempotencyPolicy).
+- **DRF adapter** (`djangoforge/adapters/drf/`): ForgeAPIView, ForgeViewSet, ForgeSerializer, ProblemDetail exception handler, ForgeAuthentication.
+- **Ninja adapter** (`djangoforge/adapters/ninja/`): forge_router, ForgeNinjaAuth, ProblemDetail exception handler.
+- **Events / Outbox** (`djangoforge/events/`): OutboxEvent model, EventBus, DomainEvent (CloudEvents envelope), broker backends.
+- **Auth** (`djangoforge/auth/`): ForgeAuthPolicy reads trusted proxy headers and produces RequestContext/Principal.
+- **Middleware** (`djangoforge/middleware/`): CorrelationIdMiddleware, SecurityHeadersMiddleware.
+- **Checks** (`djangoforge/checks/`): Django checks framework integration (forge.W001-W004).
+- **Settings** (`djangoforge/settings.py`): FORGE dict in Django settings with validated defaults.
+- **Management commands**: `forge_check`, `publish_outbox`.
+
+When building new API endpoints:
+- Prefer using Forge contract types (RequestContext, ProblemDetail) for consistency.
+- Use the outbox pattern for domain events: write OutboxEvent in the same transaction as state changes.
+- Register endpoint metadata with SchemaRegistry for OpenAPI enforcement.
+
 ### Models & database
 
 - If you change models, you must:
@@ -116,6 +136,7 @@ A task is not done until **all applicable checks** pass locally in the same way 
 - Prefer ViewSets + routers where consistent with the codebase.
 - Ensure authentication/permissions align with JWT auth setup.
 - If you add/modify endpoints, update OpenAPI/Swagger integration if required by the project.
+- For new endpoints, emit ProblemDetail-shaped errors and register with SchemaRegistry.
 
 ---
 
@@ -139,6 +160,7 @@ A task is not done until **all applicable checks** pass locally in the same way 
   - no reliance on external services
   - freeze time when needed
 - Use factories/fixtures if the repo already has them; don’t introduce a new framework unless necessary.
+- Tests for `djangoforge/` are in `djangoforge/tests/` and discovered via `pytest.ini` testpaths.
 
 ---
 
