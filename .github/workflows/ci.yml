@@ -51,8 +51,8 @@ jobs:
     
     - name: Run linters
       run: |
-        ruff check apps config
-        ruff format --check apps config
+        ruff check apps config djangoforge
+        ruff format --check apps config djangoforge
     
     - name: Check for missing migrations
       env:
