@@ -1,5 +1,5 @@
 """
-DRF authentication classes supporting both JWT and cookie-based auth.
+Authentication classes supporting both JWT and cookie-based auth.
 
 Provides two independent authentication strategies:
 
@@ -18,18 +18,17 @@ Provides two independent authentication strategies:
 ``DualAuthentication``
     Tries ``SessionJWTAuthentication`` first, falls back to
     ``SessionAuthentication``.  Registered as the default in
-    ``REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"]``.
+    ``FORGE_AUTHENTICATION_CLASSES``.
 """
 
 from __future__ import annotations
 
 import logging
 
-from rest_framework import exceptions
-from rest_framework.authentication import BaseAuthentication
-
 from apps.authn.exceptions import TokenExpiredError, TokenInvalidError
 from apps.authn.services.jwt import JWTService
+from apps.core.api import exceptions
+from apps.core.api.authentication import BaseAuthentication
 from apps.sessions.models import AuthSession
 
 logger = logging.getLogger(__name__)

@@ -29,6 +29,25 @@ def extend_schema(
     return decorator
 
 
+def extend_schema_view(**kwargs):
+    """No-op decorator that replaces ``drf_spectacular.utils.extend_schema_view``."""
+
+    def decorator(cls):
+        return cls
+
+    return decorator
+
+
+class OpenApiAuthenticationExtension:
+    """Stub for ``drf_spectacular.extensions.OpenApiAuthenticationExtension``."""
+
+    target_class: str = ""
+    name: str = ""
+
+    def get_security_definition(self, auto_schema):
+        return {}
+
+
 class OpenApiParameter:
     """Stub for ``drf_spectacular.utils.OpenApiParameter``."""
 
