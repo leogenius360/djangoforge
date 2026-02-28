@@ -1,0 +1,1 @@
+"""DjangoForge test suite."""

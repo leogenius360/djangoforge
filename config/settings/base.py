@@ -45,6 +45,7 @@ THIRD_PARTY_APPS = [
 ]
 
 LOCAL_APPS = [
+    "djangoforge.apps.DjangoForgeConfig",
     "apps.core.apps.CoreConfig",
     "apps.accounts.apps.AccountsConfig",
     "apps.authn.apps.AuthnConfig",
@@ -56,6 +57,8 @@ LOCAL_APPS = [
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
+    "djangoforge.middleware.correlation.CorrelationIdMiddleware",  # Correlation IDs for observability
+    "djangoforge.middleware.security_headers.SecurityHeadersMiddleware",  # Enterprise security headers
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -430,4 +433,12 @@ AUDITING = {
     "UNDO_ENABLED": True,
     "MAX_UNDO_DEPTH": 10,
     "RETENTION_DAYS": None,
+}
+
+# =============================================================================
+# DjangoForge configuration
+# =============================================================================
+
+FORGE: dict = {
+    # Override any FORGE default here; see djangoforge.settings.DEFAULTS for keys.
 }
