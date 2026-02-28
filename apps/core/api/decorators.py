@@ -78,3 +78,8 @@ class OpenApiParameter:
         self.location = location
         self.required = required
         self.description = description
+
+
+def inline_serializer(name: str, fields: dict | None = None, **kwargs):
+    """No-op stub for ``drf_spectacular.utils.inline_serializer``."""
+    return None

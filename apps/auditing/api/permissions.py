@@ -1,6 +1,6 @@
 """REST API permission classes for the auditing subsystem."""
 
-from rest_framework.permissions import BasePermission
+from apps.core.api.permissions import BasePermission
 
 
 class IsStaffUser(BasePermission):
