@@ -36,11 +36,11 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 
-def api_response(data: Any = None, status_code: int = 200, headers: dict | None = None) -> JsonResponse:
+def api_response(data: Any = None, status: int = 200, headers: dict | None = None) -> JsonResponse:
     """Create a ``JsonResponse`` with optional headers."""
     if data is None:
         data = {}
-    response = JsonResponse(data, status=status_code, safe=False)
+    response = JsonResponse(data, status=status, safe=False)
     if headers:
         for key, value in headers.items():
             response[key] = value
@@ -97,7 +97,7 @@ class ForgeAPIView(View):
             return self._handle_exception(exc, request)
         except Exception:
             logger.exception("Unhandled exception in %s", self.__class__.__name__)
-            return api_response({"detail": "Internal server error."}, status_code=500)
+            return api_response({"detail": "Internal server error."}, status=500)
 
     def _parse_request_data(self, request: HttpRequest) -> None:
         """Attach parsed JSON body as ``request.data``."""
@@ -198,12 +198,12 @@ class ForgeAPIView(View):
         headers = {}
         if isinstance(exc, exceptions.AuthenticationFailed):
             headers["WWW-Authenticate"] = 'Bearer realm="api"'
-        return api_response(data, status_code=exc.status_code, headers=headers)
+        return api_response(data, status=exc.status_code, headers=headers)
 
     def http_method_not_allowed(self, request: HttpRequest, *args, **kwargs) -> JsonResponse:
         return api_response(
             {"detail": f'Method "{request.method}" not allowed.'},
-            status_code=status.HTTP_405_METHOD_NOT_ALLOWED,
+            status=status.HTTP_405_METHOD_NOT_ALLOWED,
         )
 
 
@@ -306,7 +306,7 @@ class CreateMixin:
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
-        return api_response(serializer.data, status_code=status.HTTP_201_CREATED)
+        return api_response(serializer.data, status=status.HTTP_201_CREATED)
 
     def perform_create(self, serializer) -> None:
         serializer.save()
@@ -342,7 +342,7 @@ class DestroyMixin:
     def destroy(self, request: HttpRequest, *args, **kwargs) -> JsonResponse:
         instance = self.get_object()
         self.perform_destroy(instance)
-        return api_response(status_code=status.HTTP_204_NO_CONTENT)
+        return api_response(status=status.HTTP_204_NO_CONTENT)
 
     def perform_destroy(self, instance) -> None:
         instance.delete()

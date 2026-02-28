@@ -8,12 +8,12 @@ from django.conf import settings
 from django.db import connection
 from django.http import HttpResponse, HttpResponseForbidden
 from django.views import View
-from drf_spectacular.utils import extend_schema
-from rest_framework import serializers, status
-from rest_framework.permissions import IsAdminUser
-from rest_framework.response import Response
-from rest_framework.views import APIView
 
+from apps.core.api import status
+from apps.core.api.base import ForgeAPIView as APIView
+from apps.core.api.base import Response
+from apps.core.api.decorators import extend_schema
+from apps.core.api.permissions import IsAdminUser
 from apps.core.config import get_metrics_allowed_ips, get_metrics_require_auth
 
 try:
@@ -186,16 +186,10 @@ class SystemMetricsView(APIView):
 
     permission_classes = [IsAdminUser]
 
-    class ResponseSerializer(serializers.Serializer):
-        system = serializers.JSONField()
-        application = serializers.JSONField()
-        database = serializers.JSONField(required=False)
-        cache = serializers.JSONField(required=False)
-
     @extend_schema(
         summary="System Metrics",
         description="Returns JSON system/application/database/cache metrics for dashboards.",
-        responses={200: ResponseSerializer},
+        responses={200: {"description": "System metrics"}},
     )
     def get(self, request):
         """Return system metrics in JSON format."""

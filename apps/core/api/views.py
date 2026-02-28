@@ -5,12 +5,12 @@ Core app views.
 from datetime import UTC, datetime
 
 from django.conf import settings
-from drf_spectacular.utils import extend_schema
-from rest_framework import status
-from rest_framework.permissions import AllowAny
-from rest_framework.response import Response
-from rest_framework.views import APIView
 
+from apps.core.api import status
+from apps.core.api.base import ForgeAPIView as APIView
+from apps.core.api.base import Response
+from apps.core.api.decorators import extend_schema
+from apps.core.api.permissions import AllowAny
 from apps.core.health import HealthChecker
 
 
