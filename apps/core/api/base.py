@@ -95,7 +95,11 @@ class ForgeAPIView(View):
             return response
         except exceptions.APIException as exc:
             return self._handle_exception(exc, request)
-        except Exception:
+        except Exception as exc:
+            # Try custom exception handler before returning 500
+            result = self._try_custom_exception_handler(exc, request)
+            if result is not None:
+                return result
             logger.exception("Unhandled exception in %s", self.__class__.__name__)
             return api_response({"detail": "Internal server error."}, status=500)
 
@@ -176,6 +180,19 @@ class ForgeAPIView(View):
             permission = perm_class() if isinstance(perm_class, type) else perm_class
             if not permission.has_object_permission(request, self, obj):
                 raise exceptions.PermissionDenied()
+
+    def _try_custom_exception_handler(self, exc: Exception, request: HttpRequest) -> JsonResponse | None:
+        """Try custom exception handler for non-APIException errors."""
+        handler = getattr(settings, "FORGE_EXCEPTION_HANDLER", None)
+        if handler:
+            if isinstance(handler, str):
+                import importlib
+
+                module_path, func_name = handler.rsplit(".", 1)
+                module = importlib.import_module(module_path)
+                handler = getattr(module, func_name)
+            return handler(exc, {"request": request, "view": self})
+        return None
 
     def _handle_exception(self, exc: exceptions.APIException, request: HttpRequest) -> JsonResponse:
         """Convert API exceptions to JSON responses."""

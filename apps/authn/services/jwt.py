@@ -165,11 +165,10 @@ class JWTService:
         ------
         TokenExpiredError, TokenInvalidError
             From :meth:`verify_access_token`.
-        rest_framework.exceptions.AuthenticationFailed
+        apps.core.api.exceptions.AuthenticationFailed
             Session not found, not valid, or principal mismatch.
         """
-        from rest_framework.exceptions import AuthenticationFailed
-
+        from apps.core.api.exceptions import AuthenticationFailed
         from apps.sessions.models import AuthSession
 
         payload = JWTService.verify_access_token(raw_token)

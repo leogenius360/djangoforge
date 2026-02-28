@@ -31,19 +31,17 @@ class TestValidateAndNormalizePhone:
         assert result.startswith("+")
 
     def test_invalid_number_raises_validation_error(self):
-        """Invalid phone number should raise DRF ValidationError."""
-        from rest_framework import serializers
-
+        """Invalid phone number should raise ValidationError."""
         from apps.authn.utils.phone import validate_and_normalize_phone
+        from apps.core.api import serializers
 
         with pytest.raises(serializers.ValidationError):
             validate_and_normalize_phone("not-a-number")
 
     def test_unparseable_number_raises_validation_error(self):
         """Completely unparseable phone number should raise ValidationError."""
-        from rest_framework import serializers
-
         from apps.authn.utils.phone import validate_and_normalize_phone
+        from apps.core.api import serializers
 
         with pytest.raises(serializers.ValidationError):
             validate_and_normalize_phone("12345")  # Too short, no country code
@@ -57,9 +55,8 @@ class TestValidateAndNormalizePhone:
 
     def test_invalid_number_not_valid(self):
         """A parseable but semantically invalid number should raise ValidationError."""
-        from rest_framework import serializers
-
         from apps.authn.utils.phone import validate_and_normalize_phone
+        from apps.core.api import serializers
 
         with pytest.raises(serializers.ValidationError):
             validate_and_normalize_phone("+10000000000")

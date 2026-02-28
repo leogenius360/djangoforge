@@ -1,6 +1,6 @@
 """Password management serializers."""
 
-from rest_framework import serializers
+from apps.core.api import serializers
 
 
 class PasswordChangeSerializer(serializers.Serializer):

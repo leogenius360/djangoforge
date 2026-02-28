@@ -48,6 +48,14 @@ class OpenApiAuthenticationExtension:
         return {}
 
 
+class OpenApiResponse:
+    """Stub for ``drf_spectacular.utils.OpenApiResponse``."""
+
+    def __init__(self, description: str = "", response: Any = None, **kwargs):
+        self.description = description
+        self.response = response
+
+
 class OpenApiParameter:
     """Stub for ``drf_spectacular.utils.OpenApiParameter``."""
 

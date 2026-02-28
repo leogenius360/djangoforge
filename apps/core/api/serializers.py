@@ -59,6 +59,7 @@ class Field:
         help_text: str | None = None,
         error_messages: dict | None = None,
         validators: list | None = None,
+        **kwargs,  # Accept DRF-compat kwargs (e.g. style) without breaking
     ):
         self.read_only = read_only
         self.write_only = write_only
@@ -126,7 +127,9 @@ class CharField(Field):
         "min_length": "Ensure this field has at least {min_length} characters.",
     }
 
-    def __init__(self, *, max_length: int | None = None, min_length: int | None = None, trim_whitespace: bool = True, **kwargs):
+    def __init__(
+        self, *, max_length: int | None = None, min_length: int | None = None, trim_whitespace: bool = True, **kwargs
+    ):
         super().__init__(**kwargs)
         self.max_length = max_length
         self.min_length = min_length
@@ -333,7 +336,10 @@ class ChoiceField(Field):
 
 
 class ListField(Field):
-    default_error_messages = {**Field.default_error_messages, "not_a_list": 'Expected a list of items but got type "{input_type}".'}
+    default_error_messages = {
+        **Field.default_error_messages,
+        "not_a_list": 'Expected a list of items but got type "{input_type}".',
+    }
 
     def __init__(self, child: Field | None = None, **kwargs):
         super().__init__(**kwargs)
@@ -357,7 +363,10 @@ class ListField(Field):
 
 
 class DictField(Field):
-    default_error_messages = {**Field.default_error_messages, "not_a_dict": 'Expected a dictionary but got type "{input_type}".'}
+    default_error_messages = {
+        **Field.default_error_messages,
+        "not_a_dict": 'Expected a dictionary but got type "{input_type}".',
+    }
 
     def to_internal_value(self, data: Any) -> dict:
         if not isinstance(data, dict):
@@ -536,7 +545,9 @@ class Serializer(metaclass=SerializerMetaclass):
                 else:
                     self._validated_data = self._validate(self.initial_data)
             except ValidationError as exc:
-                self._errors = exc.detail if isinstance(exc.detail, (dict, list)) else {"non_field_errors": [str(exc.detail)]}
+                self._errors = (
+                    exc.detail if isinstance(exc.detail, (dict, list)) else {"non_field_errors": [str(exc.detail)]}
+                )
         else:
             self._errors = {"non_field_errors": ["No data provided."]}
 
@@ -555,7 +566,10 @@ class Serializer(metaclass=SerializerMetaclass):
             if field.read_only:
                 continue
             value = data.get(field_name, empty)
-            if isinstance(value, _Empty) and self.partial and not field.required:
+            if isinstance(value, _Empty) and not field.required:
+                # Non-required field not provided — use default if available, else skip
+                if not isinstance(field.default, _Empty):
+                    result[field.source or field_name] = field.get_default()
                 continue
             try:
                 validated = field.run_validation(value)
@@ -752,7 +766,9 @@ class ModelSerializer(Serializer):
 
         # Determine which fields to include
         if self.Meta.fields == "__all__":
-            field_names = [f.name for f in meta.get_fields() if hasattr(f, "name") and not f.many_to_many and not f.one_to_many]
+            field_names = [
+                f.name for f in meta.get_fields() if hasattr(f, "name") and not f.many_to_many and not f.one_to_many
+            ]
         elif self.Meta.fields:
             field_names = list(self.Meta.fields)
         else:

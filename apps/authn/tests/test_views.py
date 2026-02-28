@@ -8,19 +8,20 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils import timezone
-from rest_framework import status
-from rest_framework.test import APIClient
 
 from apps.authn.services import (
     AuthenticationResult,
 )
+from apps.core.api import status
 
 User = get_user_model()
 
 
 @pytest.fixture
 def api_client():
-    return APIClient()
+    from django.test import Client
+
+    return Client()
 
 
 # ── Login Views ─────────────────────────────────────────────────────
@@ -32,12 +33,12 @@ class TestLoginView:
 
     def test_login_missing_fields(self, api_client):
         url = reverse("authn:login")
-        response = api_client.post(url, {}, format="json")
+        response = api_client.post(url, {}, content_type="application/json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_login_missing_password(self, api_client):
         url = reverse("authn:login")
-        response = api_client.post(url, {"identifier": "test@example.com"}, format="json")
+        response = api_client.post(url, {"identifier": "test@example.com"}, content_type="application/json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     @patch("apps.authn.api.views.auth.AuthenticationService.authenticate_with_password")
@@ -54,11 +55,12 @@ class TestLoginView:
         response = api_client.post(
             url,
             {"identifier": user.email, "password": "TestPass123!"},
-            format="json",
+            content_type="application/json",
         )
         assert response.status_code == status.HTTP_200_OK
-        assert response.data["principal_id"] == str(user.pk)
-        assert response.data["auth_method"] == "password"
+        data = response.json()
+        assert data["principal_id"] == str(user.pk)
+        assert data["auth_method"] == "password"
 
     @patch("apps.authn.api.views.auth.AuthenticationService.authenticate_with_password")
     def test_login_invalid_credentials(self, mock_auth, api_client):
@@ -70,7 +72,7 @@ class TestLoginView:
         response = api_client.post(
             url,
             {"identifier": "test@example.com", "password": "wrong"},
-            format="json",
+            content_type="application/json",
         )
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
@@ -84,11 +86,12 @@ class TestLoginView:
         response = api_client.post(
             url,
             {"identifier": "test@example.com", "password": "TestPass123!"},
-            format="json",
+            content_type="application/json",
         )
         assert response.status_code == status.HTTP_200_OK
-        assert response.data["mfa_required"] is True
-        assert response.data["mfa_token"] == "mfa-token-abc"
+        data = response.json()
+        assert data["mfa_required"] is True
+        assert data["mfa_token"] == "mfa-token-abc"
 
     @patch("apps.authn.api.views.auth.AuthenticationService.authenticate_with_password")
     def test_login_account_locked(self, mock_auth, api_client):
@@ -100,7 +103,7 @@ class TestLoginView:
         response = api_client.post(
             url,
             {"identifier": "test@example.com", "password": "TestPass123!"},
-            format="json",
+            content_type="application/json",
         )
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -111,7 +114,7 @@ class TestMFALoginView:
 
     def test_mfa_login_missing_fields(self, api_client):
         url = reverse("authn:login-mfa")
-        response = api_client.post(url, {}, format="json")
+        response = api_client.post(url, {}, content_type="application/json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     @patch("apps.authn.api.views.auth.AuthenticationService.complete_mfa_authentication")
@@ -129,10 +132,10 @@ class TestMFALoginView:
         response = api_client.post(
             url,
             {"mfa_token": "abc123", "code": "123456"},
-            format="json",
+            content_type="application/json",
         )
         assert response.status_code == status.HTTP_200_OK
-        assert response.data["mfa_method"] == "totp"
+        assert response.json()["mfa_method"] == "totp"
 
     @patch("apps.authn.api.views.auth.AuthenticationService.complete_mfa_authentication")
     def test_mfa_login_expired(self, mock_complete, api_client):
@@ -144,7 +147,7 @@ class TestMFALoginView:
         response = api_client.post(
             url,
             {"mfa_token": "expired", "code": "123456"},
-            format="json",
+            content_type="application/json",
         )
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
@@ -158,7 +161,7 @@ class TestLogoutView:
 
     def test_logout_unauthenticated(self, api_client):
         url = reverse("authn:logout")
-        response = api_client.post(url, {}, format="json")
+        response = api_client.post(url, {}, content_type="application/json")
         assert response.status_code in (
             status.HTTP_401_UNAUTHORIZED,
             status.HTTP_403_FORBIDDEN,
@@ -166,18 +169,18 @@ class TestLogoutView:
 
     @patch("apps.authn.api.views.auth.AuthenticationService.logout")
     def test_logout_success(self, mock_logout, api_client, user):
-        api_client.force_authenticate(user=user)
+        api_client.force_login(user)
         url = reverse("authn:logout")
-        response = api_client.post(url, {}, format="json")
+        response = api_client.post(url, {}, content_type="application/json")
         assert response.status_code == status.HTTP_200_OK
-        assert response.data["detail"] == "Logged out successfully."
+        assert response.json()["detail"] == "Logged out successfully."
         mock_logout.assert_called_once()
 
     @patch("apps.authn.api.views.auth.AuthenticationService.logout")
     def test_logout_all_sessions(self, mock_logout, api_client, user):
-        api_client.force_authenticate(user=user)
+        api_client.force_login(user)
         url = reverse("authn:logout")
-        response = api_client.post(url, {"all_sessions": True}, format="json")
+        response = api_client.post(url, {"all_sessions": True}, content_type="application/json")
         assert response.status_code == status.HTTP_200_OK
         call_kwargs = mock_logout.call_args[1]
         assert call_kwargs["all_sessions"] is True
@@ -192,7 +195,7 @@ class TestPasswordChangeView:
 
     def test_change_password_unauthenticated(self, api_client):
         url = reverse("authn:password-change")
-        response = api_client.post(url, {}, format="json")
+        response = api_client.post(url, {}, content_type="application/json")
         assert response.status_code in (
             status.HTTP_401_UNAUTHORIZED,
             status.HTTP_403_FORBIDDEN,
@@ -200,7 +203,7 @@ class TestPasswordChangeView:
 
     @patch("apps.authn.api.views.password.PasswordService.change_password")
     def test_change_password_success(self, mock_change, api_client, user):
-        api_client.force_authenticate(user=user)
+        api_client.force_login(user)
         url = reverse("authn:password-change")
         response = api_client.post(
             url,
@@ -208,15 +211,15 @@ class TestPasswordChangeView:
                 "current_password": "TestPass123!",
                 "new_password": "NewSecurePass4!k",
             },
-            format="json",
+            content_type="application/json",
         )
         assert response.status_code == status.HTTP_200_OK
         mock_change.assert_called_once()
 
     def test_change_password_missing_fields(self, api_client, user):
-        api_client.force_authenticate(user=user)
+        api_client.force_login(user)
         url = reverse("authn:password-change")
-        response = api_client.post(url, {}, format="json")
+        response = api_client.post(url, {}, content_type="application/json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
@@ -227,7 +230,7 @@ class TestPasswordResetRequestView:
     def test_reset_request_always_succeeds(self, api_client):
         """Should return 200 even for nonexistent email (no enumeration)."""
         url = reverse("authn:password-reset")
-        response = api_client.post(url, {"email": "nobody@example.com"}, format="json")
+        response = api_client.post(url, {"email": "nobody@example.com"}, content_type="application/json")
         assert response.status_code == status.HTTP_200_OK
 
     @patch("apps.authn.api.views.password.PasswordService.request_password_reset")
@@ -238,13 +241,13 @@ class TestPasswordResetRequestView:
         }
 
         url = reverse("authn:password-reset")
-        response = api_client.post(url, {"email": user.email}, format="json")
+        response = api_client.post(url, {"email": user.email}, content_type="application/json")
         assert response.status_code == status.HTTP_200_OK
         mock_reset.assert_called_once()
 
     def test_reset_request_missing_email(self, api_client):
         url = reverse("authn:password-reset")
-        response = api_client.post(url, {}, format="json")
+        response = api_client.post(url, {}, content_type="application/json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
@@ -258,14 +261,14 @@ class TestPasswordResetConfirmView:
         response = api_client.post(
             url,
             {"token": "valid-token", "new_password": "NewSecurePass4!k"},
-            format="json",
+            content_type="application/json",
         )
         assert response.status_code == status.HTTP_200_OK
         mock_confirm.assert_called_once()
 
     def test_reset_confirm_missing_fields(self, api_client):
         url = reverse("authn:password-reset-confirm")
-        response = api_client.post(url, {}, format="json")
+        response = api_client.post(url, {}, content_type="application/json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
@@ -278,7 +281,7 @@ class TestMFAStatusView:
 
     def test_mfa_status_unauthenticated(self, api_client):
         url = reverse("authn:mfa-status")
-        response = api_client.get(url, format="json")
+        response = api_client.get(url, content_type="application/json")
         assert response.status_code in (
             status.HTTP_401_UNAUTHORIZED,
             status.HTTP_403_FORBIDDEN,
@@ -292,11 +295,11 @@ class TestMFAStatusView:
             "backup_codes_remaining": 0,
             "last_used": None,
         }
-        api_client.force_authenticate(user=user)
+        api_client.force_login(user)
         url = reverse("authn:mfa-status")
-        response = api_client.get(url, format="json")
+        response = api_client.get(url, content_type="application/json")
         assert response.status_code == status.HTTP_200_OK
-        assert response.data["enabled"] is False
+        assert response.json()["enabled"] is False
 
 
 @pytest.mark.django_db
@@ -305,7 +308,7 @@ class TestMFASetupView:
 
     def test_mfa_setup_unauthenticated(self, api_client):
         url = reverse("authn:mfa-setup")
-        response = api_client.get(url, format="json")
+        response = api_client.get(url, content_type="application/json")
         assert response.status_code in (
             status.HTTP_401_UNAUTHORIZED,
             status.HTTP_403_FORBIDDEN,
@@ -318,28 +321,29 @@ class TestMFASetupView:
             "provisioning_uri": "otpauth://totp/test?secret=...",
             "credential_id": "cred-id-123",
         }
-        api_client.force_authenticate(user=user)
+        api_client.force_login(user)
         url = reverse("authn:mfa-setup")
-        response = api_client.get(url, format="json")
+        response = api_client.get(url, content_type="application/json")
         assert response.status_code == status.HTTP_200_OK
-        assert "secret" in response.data
-        assert "provisioning_uri" in response.data
+        data = response.json()
+        assert "secret" in data
+        assert "provisioning_uri" in data
 
     @patch("apps.authn.api.views.mfa.MFAService.activate_totp")
     def test_mfa_setup_post_activate(self, mock_activate, api_client, user):
         mock_activate.return_value = {
             "backup_codes": ["ABCD-1234", "EFGH-5678"],
         }
-        api_client.force_authenticate(user=user)
+        api_client.force_login(user)
         url = reverse("authn:mfa-setup")
-        response = api_client.post(url, {"code": "123456"}, format="json")
+        response = api_client.post(url, {"code": "123456"}, content_type="application/json")
         assert response.status_code == status.HTTP_200_OK
-        assert "backup_codes" in response.data
+        assert "backup_codes" in response.json()
 
     def test_mfa_setup_post_missing_code(self, api_client, user):
-        api_client.force_authenticate(user=user)
+        api_client.force_login(user)
         url = reverse("authn:mfa-setup")
-        response = api_client.post(url, {}, format="json")
+        response = api_client.post(url, {}, content_type="application/json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
@@ -349,7 +353,7 @@ class TestMFADisableView:
 
     def test_mfa_disable_unauthenticated(self, api_client):
         url = reverse("authn:mfa-disable")
-        response = api_client.post(url, {}, format="json")
+        response = api_client.post(url, {}, content_type="application/json")
         assert response.status_code in (
             status.HTTP_401_UNAUTHORIZED,
             status.HTTP_403_FORBIDDEN,
@@ -358,11 +362,11 @@ class TestMFADisableView:
     @patch("apps.authn.api.views.mfa.MFAService.disable_mfa")
     def test_mfa_disable_success(self, mock_disable, api_client, user):
         mock_disable.return_value = 2
-        api_client.force_authenticate(user=user)
+        api_client.force_login(user)
         url = reverse("authn:mfa-disable")
-        response = api_client.post(url, {"code": "123456"}, format="json")
+        response = api_client.post(url, {"code": "123456"}, content_type="application/json")
         assert response.status_code == status.HTTP_200_OK
-        assert response.data["credentials_revoked"] == 2
+        assert response.json()["credentials_revoked"] == 2
 
 
 @pytest.mark.django_db
@@ -372,11 +376,11 @@ class TestBackupCodesRegenerateView:
     @patch("apps.authn.api.views.mfa.MFAService.regenerate_backup_codes")
     def test_regenerate_success(self, mock_regen, api_client, user):
         mock_regen.return_value = ["ABCD-1234", "EFGH-5678"]
-        api_client.force_authenticate(user=user)
+        api_client.force_login(user)
         url = reverse("authn:mfa-backup-codes")
-        response = api_client.post(url, {}, format="json")
+        response = api_client.post(url, {}, content_type="application/json")
         assert response.status_code == status.HTTP_200_OK
-        assert len(response.data["backup_codes"]) == 2
+        assert len(response.json()["backup_codes"]) == 2
 
 
 # ── Passwordless Views ──────────────────────────────────────────────
@@ -392,7 +396,7 @@ class TestPasswordlessRequestView:
         response = api_client.post(
             url,
             {"email": "nobody@example.com", "method": "email"},
-            format="json",
+            content_type="application/json",
         )
         assert response.status_code == status.HTTP_200_OK
 
@@ -401,7 +405,7 @@ class TestPasswordlessRequestView:
         response = api_client.post(
             url,
             {"method": "email"},
-            format="json",
+            content_type="application/json",
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -423,14 +427,14 @@ class TestPasswordlessVerifyView:
         response = api_client.post(
             url,
             {"token": "valid-token-abc"},
-            format="json",
+            content_type="application/json",
         )
         assert response.status_code == status.HTTP_200_OK
-        assert response.data["auth_method"] == "passwordless"
+        assert response.json()["auth_method"] == "passwordless"
 
     def test_passwordless_verify_missing_token(self, api_client):
         url = reverse("authn:passwordless-verify")
-        response = api_client.post(url, {}, format="json")
+        response = api_client.post(url, {}, content_type="application/json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
@@ -452,14 +456,14 @@ class TestPasswordlessTOTPLoginView:
         response = api_client.post(
             url,
             {"identifier": user.email, "code": "123456"},
-            format="json",
+            content_type="application/json",
         )
         assert response.status_code == status.HTTP_200_OK
-        assert response.data["mfa_method"] == "totp"
+        assert response.json()["mfa_method"] == "totp"
 
     def test_totp_login_missing_fields(self, api_client):
         url = reverse("authn:passwordless-totp")
-        response = api_client.post(url, {}, format="json")
+        response = api_client.post(url, {}, content_type="application/json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
@@ -472,7 +476,7 @@ class TestEmailVerificationRequestView:
 
     def test_email_verify_request_unauthenticated(self, api_client):
         url = reverse("authn:verify-email-request")
-        response = api_client.post(url, {}, format="json")
+        response = api_client.post(url, {}, content_type="application/json")
         assert response.status_code in (
             status.HTTP_401_UNAUTHORIZED,
             status.HTTP_403_FORBIDDEN,
@@ -484,9 +488,9 @@ class TestEmailVerificationRequestView:
             "token": "raw-token",
             "expires_at": timezone.now(),
         }
-        api_client.force_authenticate(user=user)
+        api_client.force_login(user)
         url = reverse("authn:verify-email-request")
-        response = api_client.post(url, {}, format="json")
+        response = api_client.post(url, {}, content_type="application/json")
         assert response.status_code == status.HTTP_200_OK
 
 
@@ -498,12 +502,12 @@ class TestEmailVerificationConfirmView:
     def test_email_verify_confirm_success(self, mock_confirm, api_client, user):
         mock_confirm.return_value = user
         url = reverse("authn:verify-email-confirm")
-        response = api_client.post(url, {"token": "valid-token"}, format="json")
+        response = api_client.post(url, {"token": "valid-token"}, content_type="application/json")
         assert response.status_code == status.HTTP_200_OK
 
     def test_email_verify_confirm_missing_token(self, api_client):
         url = reverse("authn:verify-email-confirm")
-        response = api_client.post(url, {}, format="json")
+        response = api_client.post(url, {}, content_type="application/json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
@@ -513,7 +517,7 @@ class TestPhoneVerificationRequestView:
 
     def test_phone_verify_request_unauthenticated(self, api_client):
         url = reverse("authn:verify-phone-request")
-        response = api_client.post(url, {}, format="json")
+        response = api_client.post(url, {}, content_type="application/json")
         assert response.status_code in (
             status.HTTP_401_UNAUTHORIZED,
             status.HTTP_403_FORBIDDEN,
@@ -526,9 +530,9 @@ class TestPhoneVerificationRequestView:
             "otp": "123456",
             "expires_at": timezone.now(),
         }
-        api_client.force_authenticate(user=user)
+        api_client.force_login(user)
         url = reverse("authn:verify-phone-request")
-        response = api_client.post(url, {}, format="json")
+        response = api_client.post(url, {}, content_type="application/json")
         assert response.status_code == status.HTTP_200_OK
 
 
@@ -539,15 +543,15 @@ class TestPhoneVerificationConfirmView:
     @patch("apps.authn.api.views.verification.VerificationService.confirm_phone_verification")
     def test_phone_verify_confirm_success(self, mock_confirm, api_client, user):
         mock_confirm.return_value = user
-        api_client.force_authenticate(user=user)
+        api_client.force_login(user)
         url = reverse("authn:verify-phone-confirm")
-        response = api_client.post(url, {"otp": "123456"}, format="json")
+        response = api_client.post(url, {"otp": "123456"}, content_type="application/json")
         assert response.status_code == status.HTTP_200_OK
 
     def test_phone_verify_confirm_missing_otp(self, api_client, user):
-        api_client.force_authenticate(user=user)
+        api_client.force_login(user)
         url = reverse("authn:verify-phone-confirm")
-        response = api_client.post(url, {}, format="json")
+        response = api_client.post(url, {}, content_type="application/json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
 
@@ -561,29 +565,29 @@ class TestTokenRefreshView:
     def test_refresh_missing_token_returns_400(self, api_client):
         """Empty body should return 400."""
         url = reverse("authn:token-refresh")
-        response = api_client.post(url, {}, format="json")
+        response = api_client.post(url, {}, content_type="application/json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "refresh_token" in response.data["detail"]
+        assert "refresh_token" in response.json()["detail"]
 
     def test_refresh_empty_string_returns_400(self, api_client):
         """Whitespace-only token should return 400."""
         url = reverse("authn:token-refresh")
-        response = api_client.post(url, {"refresh_token": "   "}, format="json")
+        response = api_client.post(url, {"refresh_token": "   "}, content_type="application/json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     def test_refresh_invalid_token_returns_401(self, api_client):
         """Non-existent refresh token returns 401."""
         url = reverse("authn:token-refresh")
-        response = api_client.post(url, {"refresh_token": "nonexistent-token"}, format="json")
+        response = api_client.post(url, {"refresh_token": "nonexistent-token"}, content_type="application/json")
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-        assert "detail" in response.data
+        assert "detail" in response.json()
 
     @patch("apps.sessions.models.credentials.SessionCredential.objects")
     def test_refresh_revoked_session_credential_returns_401(self, mock_sc_objects, api_client):
         """If no valid credential found (already revoked), return 401."""
         mock_sc_objects.select_related.return_value.filter.return_value.first.return_value = None
         url = reverse("authn:token-refresh")
-        response = api_client.post(url, {"refresh_token": "some-valid-looking-token"}, format="json")
+        response = api_client.post(url, {"refresh_token": "some-valid-looking-token"}, content_type="application/json")
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
     @patch("apps.sessions.models.credentials.SessionCredential.objects")
@@ -598,9 +602,9 @@ class TestTokenRefreshView:
         mock_sc_objects.select_related.return_value.filter.return_value.first.return_value = mock_credential
 
         url = reverse("authn:token-refresh")
-        response = api_client.post(url, {"refresh_token": "valid-token"}, format="json")
+        response = api_client.post(url, {"refresh_token": "valid-token"}, content_type="application/json")
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-        assert "Session is no longer valid" in response.data["detail"]
+        assert "Session is no longer valid" in response.json()["detail"]
 
     @patch("apps.authn.api.views.token.JWTService")
     @patch("apps.sessions.models.credentials.SessionCredential.objects")
@@ -623,12 +627,13 @@ class TestTokenRefreshView:
         mock_jwt.issue_access_token.return_value = "new-access-token-jwt"
 
         url = reverse("authn:token-refresh")
-        response = api_client.post(url, {"refresh_token": "valid-refresh-token"}, format="json")
+        response = api_client.post(url, {"refresh_token": "valid-refresh-token"}, content_type="application/json")
         assert response.status_code == status.HTTP_200_OK
-        assert "access_token" in response.data
-        assert "refresh_token" in response.data
-        assert response.data["token_type"] == "Bearer"
-        assert "expires_in" in response.data
+        data = response.json()
+        assert "access_token" in data
+        assert "refresh_token" in data
+        assert data["token_type"] == "Bearer"
+        assert "expires_in" in data
         # Old credential should be revoked
         assert mock_credential.is_revoked is True
         mock_credential.save.assert_called_once()
@@ -641,14 +646,14 @@ class TestTokenVerifyView:
     def test_verify_missing_token_returns_400(self, api_client):
         """Empty body should return 400."""
         url = reverse("authn:token-verify")
-        response = api_client.post(url, {}, format="json")
+        response = api_client.post(url, {}, content_type="application/json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "token" in response.data["detail"]
+        assert "token" in response.json()["detail"]
 
     def test_verify_empty_string_returns_400(self, api_client):
         """Whitespace-only token should return 400."""
         url = reverse("authn:token-verify")
-        response = api_client.post(url, {"token": "   "}, format="json")
+        response = api_client.post(url, {"token": "   "}, content_type="application/json")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
     @patch("apps.authn.api.views.token.JWTService")
@@ -658,9 +663,9 @@ class TestTokenVerifyView:
 
         mock_jwt.verify_access_token.side_effect = TokenExpiredError("expired")
         url = reverse("authn:token-verify")
-        response = api_client.post(url, {"token": "expired.jwt.token"}, format="json")
+        response = api_client.post(url, {"token": "expired.jwt.token"}, content_type="application/json")
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-        assert "expired" in response.data["detail"].lower()
+        assert "expired" in response.json()["detail"].lower()
 
     @patch("apps.authn.api.views.token.JWTService")
     def test_verify_invalid_token_returns_401(self, mock_jwt, api_client):
@@ -669,9 +674,9 @@ class TestTokenVerifyView:
 
         mock_jwt.verify_access_token.side_effect = TokenInvalidError("bad signature")
         url = reverse("authn:token-verify")
-        response = api_client.post(url, {"token": "bad.jwt.token"}, format="json")
+        response = api_client.post(url, {"token": "bad.jwt.token"}, content_type="application/json")
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-        assert "bad signature" in response.data["detail"]
+        assert "bad signature" in response.json()["detail"]
 
     @patch("apps.authn.api.views.token.JWTService")
     def test_verify_valid_token_returns_200(self, mock_jwt, api_client):
@@ -685,9 +690,10 @@ class TestTokenVerifyView:
             "exp": exp,
         }
         url = reverse("authn:token-verify")
-        response = api_client.post(url, {"token": "valid.jwt.token"}, format="json")
+        response = api_client.post(url, {"token": "valid.jwt.token"}, content_type="application/json")
         assert response.status_code == status.HTTP_200_OK
-        assert response.data["valid"] is True
-        assert response.data["sub"] == "principal-uuid"
-        assert response.data["sid"] == "session-uuid"
-        assert response.data["exp"] == exp
+        data = response.json()
+        assert data["valid"] is True
+        assert data["sub"] == "principal-uuid"
+        assert data["sid"] == "session-uuid"
+        assert data["exp"] == exp

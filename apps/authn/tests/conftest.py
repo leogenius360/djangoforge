@@ -4,16 +4,16 @@ from __future__ import annotations
 
 import pytest
 from django.contrib.auth import get_user_model
+from django.test import Client
 from django.utils import timezone
-from rest_framework.test import APIClient as DRFAPIClient
 
 User = get_user_model()
 
 
 @pytest.fixture
 def api_client():
-    """DRF API test client."""
-    return DRFAPIClient()
+    """Django test client."""
+    return Client()
 
 
 @pytest.fixture
@@ -79,8 +79,8 @@ def user_factory(db):
 
 @pytest.fixture
 def authenticated_client(api_client, user_with_verified_email):
-    """Return API client authenticated as a verified user."""
-    api_client.force_authenticate(user=user_with_verified_email)
+    """Return test client authenticated as a verified user."""
+    api_client.force_login(user_with_verified_email)
     return api_client, user_with_verified_email
 
 

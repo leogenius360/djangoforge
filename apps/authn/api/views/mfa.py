@@ -7,13 +7,12 @@ lives in the service layer.
 
 from __future__ import annotations
 
-from drf_spectacular.utils import extend_schema
-from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from rest_framework.views import APIView
-
 from apps.authn.services import MFAService
+from apps.core.api import status
+from apps.core.api.base import ForgeAPIView as APIView
+from apps.core.api.base import Response
+from apps.core.api.decorators import extend_schema
+from apps.core.api.permissions import IsAuthenticated
 
 from ..serializers import (
     BackupCodesRegenerateSerializer,

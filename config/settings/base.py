@@ -189,9 +189,11 @@ REST_FRAMEWORK = {
         "rest_framework.filters.OrderingFilter",
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    "EXCEPTION_HANDLER": "apps.authn.exception_handler.authn_exception_handler",
     "TEST_REQUEST_DEFAULT_FORMAT": "json",
 }
+
+# ForgeAPIView exception handler (used by apps.core.api.base.ForgeAPIView)
+FORGE_EXCEPTION_HANDLER = "apps.authn.exception_handler.authn_exception_handler"
 
 # JWT Settings are now managed by the authn app (AUTHN["ACCESS_TOKEN_LIFETIME_SECONDS"]).
 # SimpleJWT has been removed; tokens are issued by apps.authn.services.jwt.JWTService.

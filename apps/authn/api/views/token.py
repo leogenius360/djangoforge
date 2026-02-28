@@ -17,14 +17,14 @@ import hmac as _hmac
 import logging
 
 from django.conf import settings
-from drf_spectacular.utils import extend_schema
-from rest_framework import status
-from rest_framework.permissions import AllowAny
-from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from apps.authn.exceptions import TokenExpiredError, TokenInvalidError
 from apps.authn.services.jwt import JWTService
+from apps.core.api import status
+from apps.core.api.base import ForgeAPIView as APIView
+from apps.core.api.base import Response
+from apps.core.api.decorators import extend_schema
+from apps.core.api.permissions import AllowAny
 from apps.sessions.enums import SessionCredentialKind
 
 from ..serializers import (

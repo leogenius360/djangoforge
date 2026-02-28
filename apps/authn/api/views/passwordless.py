@@ -8,12 +8,12 @@ lives in the service layer.
 from __future__ import annotations
 
 from django.contrib.auth import get_user_model
-from rest_framework import status
-from rest_framework.permissions import AllowAny
-from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from apps.authn.services import AuthenticationService
+from apps.core.api import status
+from apps.core.api.base import ForgeAPIView as APIView
+from apps.core.api.base import Response
+from apps.core.api.permissions import AllowAny
 
 from ..serializers import (
     PasswordlessRequestSerializer,
