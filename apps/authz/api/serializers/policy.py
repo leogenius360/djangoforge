@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from django.contrib.contenttypes.models import ContentType
-from rest_framework import serializers
 
 from apps.authz.enums import PolicyEffect
 from apps.authz.models import Policy
 from apps.authz.services import PolicyService
+from apps.core.api import serializers
 
 
 class PolicySerializer(serializers.ModelSerializer):

@@ -2,13 +2,6 @@
 
 from __future__ import annotations
 
-from drf_spectacular.utils import extend_schema
-from rest_framework import status
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from rest_framework.views import APIView
-
 from apps.authz.api.permissions import IsStaffOrReadOnly, IsStaffUser
 from apps.authz.api.serializers.role import (
     RoleCreateSerializer,
@@ -20,6 +13,17 @@ from apps.authz.api.serializers.role import (
 )
 from apps.authz.models import Permission, Role
 from apps.authz.services import RoleService
+from apps.core.api import status
+from apps.core.api.base import (
+    ForgeAPIView as APIView,
+)
+from apps.core.api.base import (
+    ListCreateAPIView,
+    Response,
+    RetrieveUpdateDestroyAPIView,
+)
+from apps.core.api.decorators import extend_schema
+from apps.core.api.permissions import IsAuthenticated
 
 
 class RoleListCreateView(ListCreateAPIView):

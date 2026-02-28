@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from django.contrib.contenttypes.models import ContentType
-from rest_framework import serializers
 
 from apps.authz.enums import PermissionAction
 from apps.authz.models import Permission
+from apps.core.api import serializers
 
 
 class PermissionSerializer(serializers.ModelSerializer):

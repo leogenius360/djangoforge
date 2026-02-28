@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
-from rest_framework.permissions import IsAuthenticated
-
 from apps.authz.api.permissions import IsStaffOrReadOnly
 from apps.authz.api.serializers.permission import (
     PermissionCreateSerializer,
     PermissionSerializer,
 )
 from apps.authz.models import Permission
+from apps.core.api.base import ListCreateAPIView, RetrieveUpdateDestroyAPIView
+from apps.core.api.permissions import IsAuthenticated
 
 
 class PermissionListCreateView(ListCreateAPIView):

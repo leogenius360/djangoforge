@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-from rest_framework.generics import ListCreateAPIView, RetrieveDestroyAPIView
-from rest_framework.permissions import IsAuthenticated
-
 from apps.authz.api.serializers.assignment import (
     RoleAssignmentCreateSerializer,
     RoleAssignmentSerializer,
 )
 from apps.authz.models import RoleAssignment
+from apps.core.api.base import ListCreateAPIView, RetrieveDestroyAPIView
+from apps.core.api.permissions import IsAuthenticated
 
 
 class RoleAssignmentListCreateView(ListCreateAPIView):

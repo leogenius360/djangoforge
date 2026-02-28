@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
-from rest_framework.permissions import IsAuthenticated
-
 from apps.authz.api.permissions import IsStaffUser
 from apps.authz.api.serializers.policy import (
     PolicyCreateSerializer,
@@ -13,6 +10,8 @@ from apps.authz.api.serializers.policy import (
 )
 from apps.authz.models import Policy
 from apps.authz.services import PolicyService
+from apps.core.api.base import ListCreateAPIView, RetrieveUpdateDestroyAPIView
+from apps.core.api.permissions import IsAuthenticated
 
 
 class PolicyListCreateView(ListCreateAPIView):
