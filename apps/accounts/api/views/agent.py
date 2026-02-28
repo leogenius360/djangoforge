@@ -4,13 +4,12 @@ AgentAccount views.
 
 from __future__ import annotations
 
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
-from rest_framework.permissions import IsAuthenticated
-
 from apps.accounts.api.pagination import AccountsPagination
 from apps.accounts.api.permissions import IsOwnerOrStaff, IsStaffOrReadOnly
 from apps.accounts.api.serializers import AgentAccountCreateSerializer, AgentAccountSerializer
 from apps.accounts.models import AgentAccount
+from apps.core.api.base import ListCreateAPIView, RetrieveUpdateDestroyAPIView
+from apps.core.api.permissions import IsAuthenticated
 
 
 class AgentAccountListCreateView(ListCreateAPIView):

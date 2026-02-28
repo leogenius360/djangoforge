@@ -160,6 +160,26 @@ class EmailField(CharField):
         return value.lower()
 
 
+class URLField(CharField):
+    """Validate that the value is a valid HTTP/HTTPS URL."""
+
+    default_error_messages = {**CharField.default_error_messages, "invalid": "Enter a valid URL."}
+
+    _url_re = re.compile(
+        r"^https?://"
+        r"(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)*"
+        r"[a-zA-Z]{2,}"
+        r"(?::\d{1,5})?"
+        r"(?:/[^\s]*)?$"
+    )
+
+    def to_internal_value(self, data: Any) -> str:
+        value = super().to_internal_value(data)
+        if value and not self._url_re.match(value):
+            raise ValidationError(self.error_messages["invalid"])
+        return value
+
+
 class IntegerField(Field):
     default_error_messages = {**Field.default_error_messages, "invalid": "A valid integer is required."}
 
@@ -774,8 +794,9 @@ class ModelSerializer(Serializer):
         else:
             field_names = []
 
-        if self.Meta.exclude:
-            field_names = [f for f in field_names if f not in self.Meta.exclude]
+        exclude = getattr(self.Meta, "exclude", None)
+        if exclude:
+            field_names = [f for f in field_names if f not in exclude]
 
         read_only_fields = set(getattr(self.Meta, "read_only_fields", []) or [])
         extra_kwargs = getattr(self.Meta, "extra_kwargs", {}) or {}

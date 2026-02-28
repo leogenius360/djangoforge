@@ -167,17 +167,19 @@ class ForgeAPIView(View):
                 request.user, request.auth = result  # type: ignore[attr-defined]
                 return
 
+    def get_permissions(self):
+        """Return instantiated permission objects. Override for dynamic permissions."""
+        return [perm() if isinstance(perm, type) else perm for perm in self.permission_classes]
+
     def _check_permissions(self, request: HttpRequest) -> None:
         """Check all permission classes."""
-        for perm_class in self.permission_classes:
-            permission = perm_class() if isinstance(perm_class, type) else perm_class
+        for permission in self.get_permissions():
             if not permission.has_permission(request, self):
                 raise exceptions.PermissionDenied()
 
     def check_object_permissions(self, request: HttpRequest, obj: Any) -> None:
         """Check object-level permissions."""
-        for perm_class in self.permission_classes:
-            permission = perm_class() if isinstance(perm_class, type) else perm_class
+        for permission in self.get_permissions():
             if not permission.has_object_permission(request, self, obj):
                 raise exceptions.PermissionDenied()
 
@@ -292,10 +294,6 @@ class GenericAPIView(ForgeAPIView):
 
     def get_paginated_response(self, data):
         return api_response(self.paginator.get_paginated_response_data(data))
-
-    def get_permissions(self):
-        """Return instantiated permission objects. Override for dynamic permissions."""
-        return [perm() if isinstance(perm, type) else perm for perm in self.permission_classes]
 
 
 # ---------------------------------------------------------------------------

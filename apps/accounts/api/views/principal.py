@@ -29,12 +29,16 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
-from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.response import Response
+from apps.core.api.base import (
+    ListCreateAPIView,
+    RetrieveUpdateDestroyAPIView,
+    api_response,
+)
+from apps.core.api.permissions import AllowAny, IsAuthenticated
 
 if TYPE_CHECKING:
-    from rest_framework.request import Request
+    from django.http import HttpRequest as Request
+    from django.http import JsonResponse
 
 from apps.accounts.api.pagination import AccountsPagination
 from apps.accounts.api.permissions import IsSelfOrStaff, IsStaffOrReadOnly
@@ -111,14 +115,14 @@ class PrincipalDetailView(RetrieveUpdateDestroyAPIView):
     def perform_destroy(self, instance: Principal) -> None:
         """Soft-delete the principal. Staff only."""
         if not self.request.user.is_staff:
-            from rest_framework.exceptions import PermissionDenied
+            from apps.core.api.exceptions import PermissionDenied
 
             raise PermissionDenied("Only staff may delete principals.")
         with set_current_actor(self.request.user):
             instance.soft_delete(actor=self.request.user)
 
-    def destroy(self, request: Request, *args, **kwargs) -> Response:
+    def destroy(self, request: Request, *args, **kwargs) -> JsonResponse:
         """Return 204 No Content after soft-delete."""
         instance = self.get_object()
         self.perform_destroy(instance)
-        return Response(status=204)
+        return api_response(status=204)

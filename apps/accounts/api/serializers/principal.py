@@ -22,11 +22,10 @@ PrincipalCreateSerializer
 
 from __future__ import annotations
 
-from rest_framework import serializers
-
 from apps.accounts.enums import PrincipalKind
 from apps.accounts.models import Principal
 from apps.accounts.validators import UsernameValidator
+from apps.core.api import serializers
 
 
 class PrincipalSerializer(serializers.ModelSerializer):

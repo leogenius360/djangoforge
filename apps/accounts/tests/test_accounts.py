@@ -19,8 +19,7 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import check_password
 from django.core.exceptions import ValidationError
-from rest_framework import status
-from rest_framework.test import APIClient as DRFClient
+from django.test import Client as DRFClient
 
 from apps.accounts.enums import PrincipalKind
 from apps.accounts.exceptions import UsernameConflictError
@@ -29,6 +28,7 @@ from apps.accounts.models import (
 )
 from apps.accounts.services import AccountProvisioner
 from apps.accounts.validators import UsernameValidator
+from apps.core.api import status
 
 User = get_user_model()
 
@@ -94,14 +94,14 @@ def staff_principal(db):
 def authenticated_client(api_client, user_principal):
     """Return an authenticated API client."""
     principal, _ = user_principal
-    api_client.force_authenticate(user=principal)
+    api_client.force_login(principal)
     return api_client, principal
 
 
 @pytest.fixture
 def staff_client(api_client, staff_principal):
     """Return a staff-authenticated API client."""
-    api_client.force_authenticate(user=staff_principal)
+    api_client.force_login(staff_principal)
     return api_client, staff_principal
 
 
@@ -840,7 +840,7 @@ class TestUserAccountAPI:
     def test_list_users_not_authenticated(self, api_client):
         """Unauthenticated requests should be rejected."""
         response = api_client.get("/api/accounts/users/")
-        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.status_code in (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN)
 
     def test_create_user_via_api(self, staff_client):
         """Staff should be able to create users via API."""
@@ -853,7 +853,7 @@ class TestUserAccountAPI:
                 "email": "apinew@example.com",
                 "display_name": "API New User",
             },
-            format="json",
+            content_type="application/json",
         )
 
         assert response.status_code == status.HTTP_201_CREATED
@@ -898,7 +898,7 @@ class TestServiceAccountAPI:
                 "service_name": "new-service",
                 "description": "API created service",
             },
-            format="json",
+            content_type="application/json",
         )
 
         assert response.status_code == status.HTTP_201_CREATED
@@ -930,12 +930,12 @@ class TestAPIClientAPI:
                 "client_id": "new-api-client",
                 "client_type": "confidential",
             },
-            format="json",
+            content_type="application/json",
         )
 
         assert response.status_code == status.HTTP_201_CREATED
         # Confidential client should return a secret
-        assert "client_secret" in response.data
+        assert "client_secret" in response.json()
 
 
 @pytest.mark.django_db
@@ -966,7 +966,7 @@ class TestAgentAccountAPI:
                 "agent_type": "workflow",
                 "description": "API created agent",
             },
-            format="json",
+            content_type="application/json",
         )
 
         assert response.status_code == status.HTTP_201_CREATED
@@ -1612,7 +1612,7 @@ class TestPrincipalListCreateViewPermissions:
                 "password": "SecurePass123!",
                 "kind": "user",
             },
-            format="json",
+            content_type="application/json",
         )
         # Signup is open; either 201 created or 400 validation error
         assert response.status_code in (
@@ -1629,7 +1629,7 @@ class TestPrincipalListCreateViewPermissions:
                 "password": "SecurePass123!",
                 "email": "signup123@example.com",
             },
-            format="json",
+            content_type="application/json",
         )
         assert response.status_code in (
             status.HTTP_201_CREATED,
@@ -1646,7 +1646,7 @@ class TestPrincipalDetailView:
         client, principal = authenticated_client
         response = client.get(f"/api/accounts/{principal.pk}/")
         assert response.status_code == status.HTTP_200_OK
-        assert str(response.data["id"]) == str(principal.pk)
+        assert str(response.json()["id"]) == str(principal.pk)
 
     def test_retrieve_other_principal_non_staff_denied(self, authenticated_client, staff_principal):
         """Non-staff user should NOT be able to retrieve another user's principal."""
@@ -1668,7 +1668,7 @@ class TestPrincipalDetailView:
         response = client.patch(
             f"/api/accounts/{principal.pk}/",
             {"display_name": "Updated Name"},
-            format="json",
+            content_type="application/json",
         )
         assert response.status_code in (status.HTTP_200_OK, status.HTTP_400_BAD_REQUEST)
 
